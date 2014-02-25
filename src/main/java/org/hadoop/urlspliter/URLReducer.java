@@ -5,7 +5,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionOutputStream;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
@@ -41,15 +45,18 @@ public class URLReducer extends MapReduceBase implements Reducer<Text, Text, Tex
         long fid = createFileID(destDIR);
         String uri = makeFileName(destDIR, fid);
 
-        FileSystem fs = FileSystem.get(URI.create(uri), hdfsconf_);
-        Path p = new Path(uri);
-        FSDataOutputStream o = (fs.exists(p) ? fs.append(p) : fs.create(p));
+        FileSystem fs = FileSystem.get(hdfsconf_);
+        CompressionCodec codec = new GzipCodec();
+        FSDataOutputStream outputStream = fs.create(new Path(uri));
+        CompressionOutputStream out = codec.createOutputStream(outputStream);
 
+        StringBuilder sb = new StringBuilder();
         while (values.hasNext()) {
-            o.writeChars(values.next().toString());
-            o.write('\n');
+            sb.append(values.next().toString());
+            sb.append("\n");
         }
-        o.close();
+        out.write(sb.toString().getBytes("UTF-8"));
+        out.close();
         fs.close();
         updateIDFile(destDIR, fid);
     }
@@ -79,7 +86,7 @@ public class URLReducer extends MapReduceBase implements Reducer<Text, Text, Tex
     }
 
     private String makeFileName(String destDIR, long fid) {
-        return destDIR + data_base_name_ + "_"+ String.valueOf(fid);
+        return destDIR + data_base_name_ + "_"+ String.valueOf(fid) + ".gz";
     }
 
     private long getFileSizeKB(String filename) throws IOException {

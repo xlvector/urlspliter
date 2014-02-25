@@ -20,6 +20,11 @@
             <artifactId>hadoop-hdfs</artifactId>
             <version>2.2.0</version>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+        </dependency>
         <!-- For unit testing -->
         <dependency>
             <groupId>org.apache.mrunit</groupId>
